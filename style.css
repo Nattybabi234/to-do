@@ -86,8 +86,13 @@ ul {
   list-style: none;
 }
 
-/* MAIN TASK CARD */
+/* =======================
+   TASK CARD
+======================= */
 li {
+  position: relative;
+  overflow: hidden;
+
   background: #334155;
   padding: 12px;
   border-radius: 12px;
@@ -100,8 +105,6 @@ li {
 
   transition: all 0.2s ease;
   animation: popIn 0.25s ease;
-  position: relative;
-  overflow: hidden;
 }
 
 li:hover {
@@ -121,11 +124,37 @@ li:hover {
 }
 
 /* =======================
-   TASK CONTENT
+   SWIPE DELETE BACKGROUND
+======================= */
+.swipe-delete-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 80px;
+  background: #ef4444;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+
+  z-index: 1;
+}
+
+/* =======================
+   TASK CONTENT (SWIPE AREA)
 ======================= */
 .task-content {
   flex: 1;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+
   transition: transform 0.2s ease;
+  background: #334155;
+  border-radius: 10px;
+  padding: 10px;
 }
 
 .task-main {
@@ -142,13 +171,18 @@ li:hover {
   margin-top: 4px;
 }
 
-/* TEXT */
+/* =======================
+   TEXT
+======================= */
 li span {
   cursor: pointer;
   font-size: 14px;
+  word-break: break-word;
 }
 
-/* COMPLETED STATE */
+/* =======================
+   COMPLETED
+======================= */
 li.completed {
   opacity: 0.6;
   border-left: 5px solid #22c55e;
@@ -167,7 +201,7 @@ li.completed span {
 .priority-high { color: #ef4444; }
 
 /* =======================
-   DATES + TIME
+   DATES / TIME
 ======================= */
 small {
   font-size: 11px;
@@ -180,14 +214,14 @@ small {
 }
 
 /* =======================
-   STATUS BORDERS
+   STATUS COLORS
 ======================= */
 .overdue { border-left: 5px solid red; }
 .due-today { border-left: 5px solid orange; }
 .due-soon { border-left: 5px solid yellow; }
 
 /* =======================
-   ACTION BUTTONS
+   BUTTONS INSIDE TASK
 ======================= */
 li button {
   background: transparent;
@@ -197,6 +231,7 @@ li button {
   padding: 6px;
   border-radius: 6px;
   transition: 0.2s;
+  z-index: 3;
 }
 
 li button:hover {
@@ -215,7 +250,6 @@ li button:hover {
 .filters button {
   flex: 1;
   background: #475569;
-  transition: all 0.2s ease;
 }
 
 .filters button:hover {
@@ -224,22 +258,6 @@ li button:hover {
 
 .filters button.active {
   background: #22c55e;
-}
-
-/* =======================
-   SWIPE DELETE
-======================= */
-.swipe-delete-bg {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: 80px;
-  background: #ef4444;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
 }
 
 /* =======================
@@ -254,9 +272,11 @@ li button:hover {
   color: white;
   padding: 12px 16px;
   border-radius: 12px;
+
   display: flex;
   gap: 10px;
   align-items: center;
+
   opacity: 0;
   transition: 0.3s ease;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -278,7 +298,7 @@ li button:hover {
 }
 
 /* =======================
-   MOBILE
+   MOBILE FIXES
 ======================= */
 @media (max-width: 600px) {
   .input-section {
@@ -291,11 +311,17 @@ li button:hover {
 
   li {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .task-main {
+    flex-direction: column;
     align-items: flex-start;
   }
 
   li button {
     width: 100%;
+    margin-top: 5px;
   }
 
   body {
