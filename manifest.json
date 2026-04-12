@@ -1,6 +1,6 @@
 {
-  "name": "My To-Do App",
-  "short_name": "ToDo",
+  "name": "My To-Do App v2",
+  "short_name": "ToDo v2",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
