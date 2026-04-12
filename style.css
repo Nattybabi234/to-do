@@ -15,7 +15,9 @@ body {
   color: white;
 }
 
-/* CONTAINER */
+/* =======================
+   APP CONTAINER
+======================= */
 .container {
   background: linear-gradient(145deg, #1e293b, #0f172a);
   padding: 20px;
@@ -31,7 +33,9 @@ h1 {
   margin-bottom: 20px;
 }
 
-/* INPUTS */
+/* =======================
+   INPUT AREA
+======================= */
 .input-section {
   display: flex;
   flex-wrap: wrap;
@@ -53,9 +57,11 @@ h1 {
   flex: 2;
 }
 
-/* BUTTONS */
+/* =======================
+   BUTTONS
+======================= */
 button {
-  padding: 10px 14px;
+  padding: 10px 12px;
   border: none;
   border-radius: 8px;
   background: #6366f1;
@@ -72,12 +78,15 @@ button:active {
   transform: scale(0.95);
 }
 
-/* TASK LIST */
+/* =======================
+   TASK LIST
+======================= */
 ul {
   margin-top: 20px;
   list-style: none;
 }
 
+/* MAIN TASK CARD */
 li {
   background: #334155;
   padding: 12px;
@@ -89,8 +98,10 @@ li {
   align-items: flex-start;
   gap: 10px;
 
-  animation: popIn 0.25s ease;
   transition: all 0.2s ease;
+  animation: popIn 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 li:hover {
@@ -99,33 +110,65 @@ li:hover {
 }
 
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-li div {
+/* =======================
+   TASK CONTENT
+======================= */
+.task-content {
+  flex: 1;
+  transition: transform 0.2s ease;
+}
+
+.task-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1;
+  gap: 3px;
+  margin-top: 4px;
 }
 
+/* TEXT */
 li span {
   cursor: pointer;
+  font-size: 14px;
 }
 
-/* COMPLETED */
-.completed span {
+/* COMPLETED STATE */
+li.completed {
+  opacity: 0.6;
+  border-left: 5px solid #22c55e;
+}
+
+li.completed span {
   text-decoration: line-through;
   opacity: 0.5;
 }
 
-/* PRIORITY */
+/* =======================
+   PRIORITY
+======================= */
 .priority-low { color: #22c55e; }
 .priority-medium { color: #facc15; }
 .priority-high { color: #ef4444; }
 
-/* DATES */
+/* =======================
+   DATES + TIME
+======================= */
 small {
   font-size: 11px;
   opacity: 0.8;
@@ -136,12 +179,33 @@ small {
   opacity: 0.6;
 }
 
-/* STATUS */
+/* =======================
+   STATUS BORDERS
+======================= */
 .overdue { border-left: 5px solid red; }
 .due-today { border-left: 5px solid orange; }
 .due-soon { border-left: 5px solid yellow; }
 
-/* FILTERS */
+/* =======================
+   ACTION BUTTONS
+======================= */
+li button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+li button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* =======================
+   FILTERS
+======================= */
 .filters {
   display: flex;
   gap: 5px;
@@ -151,13 +215,71 @@ small {
 .filters button {
   flex: 1;
   background: #475569;
+  transition: all 0.2s ease;
+}
+
+.filters button:hover {
+  transform: scale(1.05);
 }
 
 .filters button.active {
   background: #22c55e;
 }
 
-/* MOBILE */
+/* =======================
+   SWIPE DELETE
+======================= */
+.swipe-delete-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 80px;
+  background: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* =======================
+   UNDO TOAST
+======================= */
+#undoToast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1e293b;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  opacity: 0;
+  transition: 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  z-index: 1000;
+}
+
+#undoToast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+#undoToast button {
+  background: #22c55e;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+}
+
+/* =======================
+   MOBILE
+======================= */
 @media (max-width: 600px) {
   .input-section {
     flex-direction: column;
@@ -174,5 +296,9 @@ small {
 
   li button {
     width: 100%;
+  }
+
+  body {
+    align-items: flex-start;
   }
 }
