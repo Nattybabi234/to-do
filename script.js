@@ -378,3 +378,15 @@ function sortTasks() {
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleString();
 }
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then((reg) => {
+        console.log("SW registered:", reg.scope);
+      })
+      .catch((err) => {
+        console.log("SW failed:", err);
+      });
+  });
+}
