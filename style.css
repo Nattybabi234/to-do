@@ -113,24 +113,6 @@ li {
   }
 }
 
-/* =======================
-   SWIPE DELETE BACKGROUND
-======================= */
-.swipe-delete-bg {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: 80px;
-  background: #ef4444;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-
-  z-index: 1;
-}
 
 /* =======================
    TASK CONTENT
