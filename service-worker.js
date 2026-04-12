@@ -1,4 +1,4 @@
-const CACHE_NAME = "najaza-todo-v1";
+const CACHE_NAME = "najaza-todo-v2";
 
 const FILES_TO_CACHE = [
   "./",
