@@ -18,11 +18,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =======================
-// NOTIFICATIONS SETUP
+// NOTIFICATIONS
 // =======================
 function requestNotificationPermission() {
   if (!("Notification" in window)) return;
-
   if (Notification.permission === "default") {
     Notification.requestPermission();
   }
@@ -30,7 +29,7 @@ function requestNotificationPermission() {
 
 function startDueDateChecker() {
   checkDueTasks();
-  setInterval(checkDueTasks, 60000); // every minute
+  setInterval(checkDueTasks, 60000);
 }
 
 function sendNotification(title, message) {
@@ -57,11 +56,11 @@ function checkDueTasks() {
     const diff = (due - today) / (1000 * 60 * 60 * 24);
 
     if (diff < 0) {
-      sendNotification("Overdue Task", `❗ "${task.text}" is overdue`);
+      sendNotification("Overdue Task", `"${task.text}" is overdue`);
     } else if (diff === 0) {
-      sendNotification("Due Today", `📌 "${task.text}" is due today`);
+      sendNotification("Due Today", `"${task.text}" is due today`);
     } else if (diff === 1) {
-      sendNotification("Due Soon", `⏰ "${task.text}" is due tomorrow`);
+      sendNotification("Due Soon", `"${task.text}" is due tomorrow`);
     }
   });
 }
@@ -69,9 +68,9 @@ function checkDueTasks() {
 // =======================
 // EVENTS
 // =======================
-addBtn.addEventListener("click", addTask);
+addBtn?.addEventListener("click", addTask);
 
-taskInput.addEventListener("keypress", (e) => {
+taskInput?.addEventListener("keypress", (e) => {
   if (e.key === "Enter") addTask();
 });
 
@@ -102,8 +101,7 @@ function addTask() {
     completed: false,
     dueDate,
     priority,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toISOString()
   };
 
   saveTask(task);
@@ -143,7 +141,7 @@ function createTaskElement(task) {
   priorityTag.classList.add(`priority-${task.priority}`);
 
   const completeBtn = document.createElement("button");
-  completeBtn.innerHTML = task.completed ? "☑️" : "✔️";
+  completeBtn.textContent = task.completed ? "☑️" : "✔️";
 
   completeBtn.addEventListener("click", () => {
     task.completed = !task.completed;
@@ -159,7 +157,10 @@ function createTaskElement(task) {
   const date = document.createElement("small");
   date.classList.add("due-date");
 
+  // ✅ FIX: store raw date for safe sorting
   if (task.dueDate) {
+    date.dataset.raw = task.dueDate;
+
     const due = new Date(task.dueDate);
     const today = new Date();
 
@@ -176,7 +177,6 @@ function createTaskElement(task) {
   }
 
   const time = document.createElement("small");
-  time.classList.add("timestamp");
   time.textContent = `Created: ${formatTime(task.createdAt)}`;
 
   meta.appendChild(date);
@@ -186,7 +186,7 @@ function createTaskElement(task) {
   content.appendChild(meta);
 
   const editBtn = document.createElement("button");
-  editBtn.innerHTML = "✏️";
+  editBtn.textContent = "✏️";
 
   editBtn.addEventListener("click", () => {
     const newText = prompt("Edit task:", task.text);
@@ -197,14 +197,22 @@ function createTaskElement(task) {
   });
 
   const deleteBtn = document.createElement("button");
-  deleteBtn.innerHTML = "🗑️";
+  deleteBtn.textContent = "🗑️";
 
   deleteBtn.addEventListener("click", () => {
     deleteTaskWithUndo(task);
     li.remove();
   });
 
-  // SWIPE DELETE
+  li.appendChild(deleteBg);
+  li.appendChild(content);
+  li.appendChild(completeBtn);
+  li.appendChild(editBtn);
+  li.appendChild(deleteBtn);
+
+  taskList.appendChild(li);
+
+  // swipe
   let startX = 0;
   let currentX = 0;
   let isSwiping = false;
@@ -242,14 +250,6 @@ function createTaskElement(task) {
       content.style.transform = "translateX(0)";
     }
   });
-
-  li.appendChild(deleteBg);
-  li.appendChild(content);
-  li.appendChild(completeBtn);
-  li.appendChild(editBtn);
-  li.appendChild(deleteBtn);
-
-  taskList.appendChild(li);
 }
 
 // =======================
@@ -348,15 +348,16 @@ function filterTasks() {
   });
 }
 
+// ✅ FIXED SORT (no broken date parsing)
 function sortTasks() {
   const tasks = Array.from(taskList.children);
 
   tasks.sort((a, b) => {
     const getScore = (el) => {
-      const text = el.querySelector(".due-date")?.textContent;
-      if (!text) return 9999;
+      const raw = el.querySelector(".due-date")?.dataset.raw;
+      if (!raw) return 9999;
 
-      const date = new Date(text.replace("Due: ", ""));
+      const date = new Date(raw);
       const today = new Date();
 
       date.setHours(0,0,0,0);
