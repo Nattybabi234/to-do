@@ -99,27 +99,17 @@ li {
   margin-bottom: 10px;
 
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 10px;
 
-  transition: all 0.2s ease;
-  animation: popIn 0.25s ease;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-li:hover {
-  transform: translateY(-2px);
-  background: #475569;
-}
-
-@keyframes popIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+@media (hover: hover) {
+  li:hover {
+    transform: translateY(-2px);
+    background: #475569;
   }
 }
 
@@ -143,24 +133,21 @@ li:hover {
 }
 
 /* =======================
-   TASK CONTENT (SWIPE AREA)
+   TASK CONTENT
 ======================= */
 .task-content {
   flex: 1;
-  width: 100%;
   position: relative;
   z-index: 2;
-
   transition: transform 0.2s ease;
-  background: #334155;
-  border-radius: 10px;
-  padding: 10px;
+  will-change: transform;
 }
 
 .task-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
   gap: 10px;
 }
 
@@ -221,7 +208,7 @@ small {
 .due-soon { border-left: 5px solid yellow; }
 
 /* =======================
-   BUTTONS INSIDE TASK
+   TASK BUTTONS
 ======================= */
 li button {
   background: transparent;
@@ -231,7 +218,9 @@ li button {
   padding: 6px;
   border-radius: 6px;
   transition: 0.2s;
+  position: relative;
   z-index: 3;
+  flex-shrink: 0;
 }
 
 li button:hover {
@@ -310,7 +299,6 @@ li button:hover {
   }
 
   li {
-    flex-direction: column;
     align-items: stretch;
   }
 
