@@ -6,6 +6,8 @@ const dueDateInput = document.getElementById("dueDate");
 const priorityInput = document.getElementById("priority");
 
 let currentFilter = "all";
+let undoCache = null;
+let undoTimeout = null;
 
 // =======================
 // INIT
@@ -45,16 +47,14 @@ function addTask() {
 
   if (!text) return;
 
-  const now = new Date().toISOString();
-
   const task = {
     id: Date.now(),
     text,
     completed: false,
     dueDate,
     priority,
-    createdAt: now,
-    updatedAt: now
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 
   saveTask(task);
@@ -68,7 +68,7 @@ function addTask() {
 }
 
 // =======================
-// UI
+// CREATE TASK UI
 // =======================
 function createTaskElement(task) {
   const li = document.createElement("li");
@@ -76,7 +76,14 @@ function createTaskElement(task) {
 
   if (task.completed) li.classList.add("completed");
 
-  const container = document.createElement("div");
+  // SWIPE BACKGROUND
+  const deleteBg = document.createElement("div");
+  deleteBg.classList.add("swipe-delete-bg");
+  deleteBg.innerHTML = "🗑️";
+
+  // CONTENT WRAPPER
+  const content = document.createElement("div");
+  content.classList.add("task-content");
 
   const top = document.createElement("div");
   top.classList.add("task-main");
@@ -88,13 +95,20 @@ function createTaskElement(task) {
   priorityTag.textContent = task.priority.toUpperCase();
   priorityTag.classList.add(`priority-${task.priority}`);
 
+  const completeBtn = document.createElement("button");
+  completeBtn.innerHTML = task.completed ? "☑️" : "✔️";
+
+  completeBtn.addEventListener("click", () => {
+    task.completed = !task.completed;
+    updateTask(task);
+  });
+
   top.appendChild(span);
   top.appendChild(priorityTag);
 
   const meta = document.createElement("div");
   meta.classList.add("task-meta");
 
-  // DUE DATE
   const date = document.createElement("small");
   date.classList.add("due-date");
 
@@ -114,7 +128,6 @@ function createTaskElement(task) {
     else if (diff <= 2) li.classList.add("due-soon");
   }
 
-  // TIMESTAMP
   const time = document.createElement("small");
   time.classList.add("timestamp");
   time.textContent = `Created: ${formatTime(task.createdAt)}`;
@@ -122,11 +135,8 @@ function createTaskElement(task) {
   meta.appendChild(date);
   meta.appendChild(time);
 
-  // COMPLETE
-  span.addEventListener("click", () => {
-    task.completed = !task.completed;
-    updateTask(task);
-  });
+  content.appendChild(top);
+  content.appendChild(meta);
 
   // EDIT
   const editBtn = document.createElement("button");
@@ -142,23 +152,115 @@ function createTaskElement(task) {
     }
   });
 
-  // DELETE
+  // DELETE (manual button fallback)
   const deleteBtn = document.createElement("button");
   deleteBtn.innerHTML = "🗑️";
 
   deleteBtn.addEventListener("click", () => {
+    triggerUndoDelete(task);
     li.remove();
-    deleteTask(task.id);
   });
 
-  container.appendChild(top);
-  container.appendChild(meta);
+  // SWIPE DELETE
+  let startX = 0;
+  let currentX = 0;
+  let isSwiping = false;
 
-  li.appendChild(container);
+  content.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    isSwiping = true;
+  });
+
+  content.addEventListener("touchmove", (e) => {
+    if (!isSwiping) return;
+
+    currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+
+    if (diff < 0) {
+      content.style.transform = `translateX(${diff}px)`;
+    }
+  });
+
+  content.addEventListener("touchend", () => {
+    isSwiping = false;
+
+    const diff = currentX - startX;
+
+    if (diff < -80) {
+      triggerUndoDelete(task);
+
+      li.style.transition = "0.2s";
+      li.style.transform = "translateX(-100%)";
+      li.style.opacity = "0";
+
+      setTimeout(() => li.remove(), 200);
+    } else {
+      content.style.transform = "translateX(0)";
+    }
+  });
+
+  li.appendChild(deleteBg);
+  li.appendChild(content);
+  li.appendChild(completeBtn);
   li.appendChild(editBtn);
   li.appendChild(deleteBtn);
 
   taskList.appendChild(li);
+}
+
+// =======================
+// UNDO SYSTEM
+// =======================
+function triggerUndoDelete(task) {
+  undoCache = task;
+
+  removeTask(task.id);
+
+  showUndoToast();
+
+  clearTimeout(undoTimeout);
+
+  undoTimeout = setTimeout(() => {
+    undoCache = null;
+    hideUndoToast();
+  }, 5000);
+}
+
+function undoDelete() {
+  if (!undoCache) return;
+
+  saveTask(undoCache);
+  createTaskElement(undoCache);
+
+  undoCache = null;
+  hideUndoToast();
+}
+
+// =======================
+// TOAST UI
+// =======================
+function showUndoToast() {
+  let toast = document.getElementById("undoToast");
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "undoToast";
+    toast.innerHTML = `
+      Task deleted
+      <button id="undoBtn">Undo</button>
+    `;
+    document.body.appendChild(toast);
+
+    document.getElementById("undoBtn").addEventListener("click", undoDelete);
+  }
+
+  toast.classList.add("show");
+}
+
+function hideUndoToast() {
+  const toast = document.getElementById("undoToast");
+  if (toast) toast.classList.remove("show");
 }
 
 // =======================
@@ -178,7 +280,14 @@ function loadTasks() {
   getTasks().forEach(createTaskElement);
 }
 
+function removeTask(id) {
+  const tasks = getTasks().filter(t => t.id !== id);
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+// =======================
 // UPDATE
+// =======================
 function updateTask(updatedTask) {
   const tasks = getTasks().map(t =>
     t.id === updatedTask.id ? updatedTask : t
@@ -190,12 +299,6 @@ function updateTask(updatedTask) {
   loadTasks();
   sortTasks();
   filterTasks();
-}
-
-// DELETE
-function deleteTask(id) {
-  const tasks = getTasks().filter(t => t.id !== id);
-  localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
 // =======================
@@ -248,8 +351,4 @@ function sortTasks() {
 // =======================
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleString();
-}
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
 }
