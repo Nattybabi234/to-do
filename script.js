@@ -6,8 +6,6 @@ const dueDateInput = document.getElementById("dueDate");
 const priorityInput = document.getElementById("priority");
 
 let currentFilter = "all";
-let undoCache = null;
-let undoTimeout = null;
 
 // =======================
 // INIT
@@ -15,7 +13,58 @@ let undoTimeout = null;
 document.addEventListener("DOMContentLoaded", () => {
   loadTasks();
   filterTasks();
+  requestNotificationPermission();
+  startDueDateChecker();
 });
+
+// =======================
+// NOTIFICATIONS SETUP
+// =======================
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function startDueDateChecker() {
+  checkDueTasks();
+  setInterval(checkDueTasks, 60000); // every minute
+}
+
+function sendNotification(title, message) {
+  if (Notification.permission !== "granted") return;
+
+  new Notification(title, {
+    body: message,
+    icon: "icon.png"
+  });
+}
+
+function checkDueTasks() {
+  const tasks = getTasks();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  tasks.forEach(task => {
+    if (!task.dueDate || task.completed) return;
+
+    const due = new Date(task.dueDate);
+    due.setHours(0, 0, 0, 0);
+
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+
+    if (diff < 0) {
+      sendNotification("Overdue Task", `❗ "${task.text}" is overdue`);
+    } else if (diff === 0) {
+      sendNotification("Due Today", `📌 "${task.text}" is due today`);
+    } else if (diff === 1) {
+      sendNotification("Due Soon", `⏰ "${task.text}" is due tomorrow`);
+    }
+  });
+}
 
 // =======================
 // EVENTS
@@ -76,12 +125,10 @@ function createTaskElement(task) {
 
   if (task.completed) li.classList.add("completed");
 
-  // SWIPE BACKGROUND
   const deleteBg = document.createElement("div");
   deleteBg.classList.add("swipe-delete-bg");
   deleteBg.innerHTML = "🗑️";
 
-  // CONTENT WRAPPER
   const content = document.createElement("div");
   content.classList.add("task-content");
 
@@ -138,26 +185,22 @@ function createTaskElement(task) {
   content.appendChild(top);
   content.appendChild(meta);
 
-  // EDIT
   const editBtn = document.createElement("button");
   editBtn.innerHTML = "✏️";
 
   editBtn.addEventListener("click", () => {
     const newText = prompt("Edit task:", task.text);
-
     if (newText?.trim()) {
       task.text = newText.trim();
-      task.updatedAt = new Date().toISOString();
       updateTask(task);
     }
   });
 
-  // DELETE (manual button fallback)
   const deleteBtn = document.createElement("button");
   deleteBtn.innerHTML = "🗑️";
 
   deleteBtn.addEventListener("click", () => {
-    triggerUndoDelete(task);
+    deleteTaskWithUndo(task);
     li.remove();
   });
 
@@ -188,7 +231,7 @@ function createTaskElement(task) {
     const diff = currentX - startX;
 
     if (diff < -80) {
-      triggerUndoDelete(task);
+      deleteTaskWithUndo(task);
 
       li.style.transition = "0.2s";
       li.style.transform = "translateX(-100%)";
@@ -212,55 +255,49 @@ function createTaskElement(task) {
 // =======================
 // UNDO SYSTEM
 // =======================
-function triggerUndoDelete(task) {
-  undoCache = task;
+let undoTask = null;
+let undoTimeout = null;
 
+function deleteTaskWithUndo(task) {
+  undoTask = task;
   removeTask(task.id);
 
   showUndoToast();
 
   clearTimeout(undoTimeout);
-
   undoTimeout = setTimeout(() => {
-    undoCache = null;
+    undoTask = null;
     hideUndoToast();
   }, 5000);
 }
 
 function undoDelete() {
-  if (!undoCache) return;
+  if (!undoTask) return;
 
-  saveTask(undoCache);
-  createTaskElement(undoCache);
+  saveTask(undoTask);
+  createTaskElement(undoTask);
 
-  undoCache = null;
+  undoTask = null;
   hideUndoToast();
 }
 
-// =======================
-// TOAST UI
-// =======================
 function showUndoToast() {
   let toast = document.getElementById("undoToast");
 
   if (!toast) {
     toast = document.createElement("div");
     toast.id = "undoToast";
-    toast.innerHTML = `
-      Task deleted
-      <button id="undoBtn">Undo</button>
-    `;
+    toast.innerHTML = `Task deleted <button>Undo</button>`;
     document.body.appendChild(toast);
 
-    document.getElementById("undoBtn").addEventListener("click", undoDelete);
+    toast.querySelector("button").addEventListener("click", undoDelete);
   }
 
   toast.classList.add("show");
 }
 
 function hideUndoToast() {
-  const toast = document.getElementById("undoToast");
-  if (toast) toast.classList.remove("show");
+  document.getElementById("undoToast")?.classList.remove("show");
 }
 
 // =======================
@@ -286,11 +323,11 @@ function removeTask(id) {
 }
 
 // =======================
-// UPDATE
+// UPDATE + FILTER + SORT
 // =======================
-function updateTask(updatedTask) {
+function updateTask(updated) {
   const tasks = getTasks().map(t =>
-    t.id === updatedTask.id ? updatedTask : t
+    t.id === updated.id ? updated : t
   );
 
   localStorage.setItem("tasks", JSON.stringify(tasks));
@@ -301,9 +338,6 @@ function updateTask(updatedTask) {
   filterTasks();
 }
 
-// =======================
-// FILTER
-// =======================
 function filterTasks() {
   document.querySelectorAll("#taskList li").forEach(li => {
     const isCompleted = li.classList.contains("completed");
@@ -314,16 +348,12 @@ function filterTasks() {
   });
 }
 
-// =======================
-// SORT
-// =======================
 function sortTasks() {
   const tasks = Array.from(taskList.children);
 
   tasks.sort((a, b) => {
     const getScore = (el) => {
       const text = el.querySelector(".due-date")?.textContent;
-
       if (!text) return 9999;
 
       const date = new Date(text.replace("Due: ", ""));
@@ -332,12 +362,7 @@ function sortTasks() {
       date.setHours(0,0,0,0);
       today.setHours(0,0,0,0);
 
-      const diff = (date - today) / (1000 * 60 * 60 * 24);
-
-      if (diff < 0) return -3;
-      if (diff === 0) return -2;
-      if (diff <= 2) return -1;
-      return diff;
+      return (date - today) / (1000 * 60 * 60 * 24);
     };
 
     return getScore(a) - getScore(b);
