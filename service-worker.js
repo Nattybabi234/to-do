@@ -1,6 +1,6 @@
-const CACHE_NAME = "najaza-todo-v2";
+const CACHE_NAME = "najaza-todo-v1";
 
-const FILES_TO_CACHE = [
+const FILES = [
   "./",
   "./index.html",
   "./style.css",
@@ -12,25 +12,21 @@ const FILES_TO_CACHE = [
 // INSTALL
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES))
   );
   self.skipWaiting();
 });
 
-// ACTIVATE (cleanup old caches)
+// ACTIVATE (clean old versions)
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
@@ -39,12 +35,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => {
-        // fallback for offline navigation
-        if (event.request.mode === "navigate") {
-          return caches.match("./index.html");
-        }
-      });
+      return (
+        cached ||
+        fetch(event.request).catch(() => {
+          if (event.request.mode === "navigate") {
+            return caches.match("./index.html");
+          }
+        })
+      );
     })
   );
 });
