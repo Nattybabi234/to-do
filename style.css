@@ -1,0 +1,178 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  color: white;
+}
+
+/* CONTAINER */
+.container {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  padding: 20px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* INPUTS */
+.input-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.input-section input,
+.input-section select {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+#taskInput {
+  flex: 2;
+}
+
+/* BUTTONS */
+button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #4f46e5;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* TASK LIST */
+ul {
+  margin-top: 20px;
+  list-style: none;
+}
+
+li {
+  background: #334155;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+
+  animation: popIn 0.25s ease;
+  transition: all 0.2s ease;
+}
+
+li:hover {
+  transform: translateY(-2px);
+  background: #475569;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+li div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+li span {
+  cursor: pointer;
+}
+
+/* COMPLETED */
+.completed span {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* PRIORITY */
+.priority-low { color: #22c55e; }
+.priority-medium { color: #facc15; }
+.priority-high { color: #ef4444; }
+
+/* DATES */
+small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.timestamp {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* STATUS */
+.overdue { border-left: 5px solid red; }
+.due-today { border-left: 5px solid orange; }
+.due-soon { border-left: 5px solid yellow; }
+
+/* FILTERS */
+.filters {
+  display: flex;
+  gap: 5px;
+  margin-top: 15px;
+}
+
+.filters button {
+  flex: 1;
+  background: #475569;
+}
+
+.filters button.active {
+  background: #22c55e;
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+  .input-section {
+    flex-direction: column;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  li button {
+    width: 100%;
+  }
+}
