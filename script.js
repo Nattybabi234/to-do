@@ -89,29 +89,32 @@ filterButtons.forEach(button => {
 // ADD TASK
 // =======================
 function addTask() {
-  const text = taskInput.value.trim();
-  const dueDate = dueDateInput?.value || "";
-  const priority = priorityInput?.value || "low";
+  const taskInput = document.getElementById("taskInput");
+  const taskDate = document.getElementById("taskDate");
+  const taskTime = document.getElementById("taskTime");
 
-  if (!text) return;
+  const taskText = taskInput.value.trim();
+  const date = taskDate.value;
+  const time = taskTime.value;
+
+  if (taskText === "") return;
 
   const task = {
-    id: Date.now(),
-    text,
-    completed: false,
-    dueDate,
-    priority,
-    createdAt: new Date().toISOString()
+    text: taskText,
+    date: date,
+    time: time,
+    done: false
   };
 
-  saveTask(task);
-  createTaskElement(task);
+  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+  tasks.push(task);
+  localStorage.setItem("tasks", JSON.stringify(tasks));
 
   taskInput.value = "";
-  if (dueDateInput) dueDateInput.value = "";
+  taskDate.value = "";
+  taskTime.value = "";
 
-  sortTasks();
-  filterTasks();
+  renderTasks();
 }
 
 // =======================
@@ -388,5 +391,29 @@ if ("serviceWorker" in navigator) {
       .catch((err) => {
         console.log("SW failed:", err);
       });
+  }); 
+}
+
+function renderTasks() {
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+  tasks.forEach((task, index) => {
+    const li = document.createElement("li");
+
+    let timeText = "";
+    if (task.date || task.time) {
+      timeText = `⏰ ${task.date || ""} ${task.time || ""}`;
+    }
+
+    li.innerHTML = `
+      <span>${task.text}</span>
+      <small>${timeText}</small>
+      <button onclick="deleteTask(${index})">❌</button>
+    `;
+
+    list.appendChild(li);
   });
 }
