@@ -148,12 +148,13 @@ function createTaskElement(task) {
   const countdown = document.createElement("small");
 
   if (task.dueDate || task.dueTime) {
-    let text = "⏰ ";
+  let text = "⏰ Due: ";
 
-    if (task.dueDate) text += task.dueDate;
-    if (task.dueTime) text += ` at ${task.dueTime}`;
+  if (task.dueDate) text += task.dueDate;
+  if (task.dueTime) text += ` • ${task.dueTime}`;
 
-    due.textContent = text;
+  due.textContent = text;
+
 
     const updateCountdown = () => {
       const t = getTimeLeft(task);
