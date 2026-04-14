@@ -15,9 +15,13 @@
   <h1>Najaza To-Do</h1>
 
   <div class="input-section">
-    <input type="text" id="taskInput" placeholder="Add a new task...">
+    <input type="text" id="taskInput" placeholder="Add a task...">
 
-    <input type="date" id="dueDate">
+<input type="date" id="taskDate">
+
+<input type="time" id="taskTime">
+
+<button onclick="addTask()">Add</button>
 
     <select id="priority">
       <option value="low">Low</option>
