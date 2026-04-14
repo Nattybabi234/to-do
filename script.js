@@ -2,7 +2,6 @@ const taskInput = document.getElementById("taskInput");
 const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
 const filterButtons = document.querySelectorAll(".filters button");
-const dueDateInput = document.getElementById("dueDate");
 const priorityInput = document.getElementById("priority");
 
 let currentFilter = "all";
@@ -43,24 +42,20 @@ function sendNotification(title, message) {
 
 function checkDueTasks() {
   const tasks = getTasks();
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
   tasks.forEach(task => {
     if (!task.dueDate || task.completed) return;
 
-    const due = new Date(task.dueDate);
-    due.setHours(0, 0, 0, 0);
+    const due = new Date(`${task.dueDate}T${task.dueTime || "00:00"}`);
 
-    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    const diff = due - now;
+    const day = 1000 * 60 * 60 * 24;
 
     if (diff < 0) {
       sendNotification("Overdue Task", `"${task.text}" is overdue`);
-    } else if (diff === 0) {
-      sendNotification("Due Today", `"${task.text}" is due today`);
-    } else if (diff === 1) {
-      sendNotification("Due Soon", `"${task.text}" is due tomorrow`);
+    } else if (diff < day) {
+      sendNotification("Due Soon", `"${task.text}" is due soon`);
     }
   });
 }
@@ -68,9 +63,9 @@ function checkDueTasks() {
 // =======================
 // EVENTS
 // =======================
-addBtn?.addEventListener("click", addTask);
+addBtn.addEventListener("click", addTask);
 
-taskInput?.addEventListener("keypress", (e) => {
+taskInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") addTask();
 });
 
@@ -89,32 +84,33 @@ filterButtons.forEach(button => {
 // ADD TASK
 // =======================
 function addTask() {
-  const taskInput = document.getElementById("taskInput");
   const taskDate = document.getElementById("taskDate");
   const taskTime = document.getElementById("taskTime");
 
-  const taskText = taskInput.value.trim();
-  const date = taskDate.value;
-  const time = taskTime.value;
+  const text = taskInput.value.trim();
 
-  if (taskText === "") return;
+  if (!text) return;
 
   const task = {
-    text: taskText,
-    date: date,
-    time: time,
-    done: false
+    id: Date.now(),
+    text,
+    dueDate: taskDate.value,
+    dueTime: taskTime.value,
+    priority: priorityInput.value,
+    completed: false,
+    createdAt: new Date().toISOString()
   };
 
-  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-  tasks.push(task);
-  localStorage.setItem("tasks", JSON.stringify(tasks));
+  saveTask(task);
 
   taskInput.value = "";
   taskDate.value = "";
   taskTime.value = "";
 
-  renderTasks();
+  taskList.innerHTML = "";
+  loadTasks();
+  sortTasks();
+  filterTasks();
 }
 
 // =======================
@@ -126,10 +122,6 @@ function createTaskElement(task) {
 
   if (task.completed) li.classList.add("completed");
 
-  const deleteBg = document.createElement("div");
-  deleteBg.classList.add("swipe-delete-bg");
-  deleteBg.innerHTML = "🗑️";
-
   const content = document.createElement("div");
   content.classList.add("task-content");
 
@@ -139,10 +131,48 @@ function createTaskElement(task) {
   const span = document.createElement("span");
   span.textContent = task.text;
 
-  const priorityTag = document.createElement("strong");
-  priorityTag.textContent = task.priority.toUpperCase();
-  priorityTag.classList.add(`priority-${task.priority}`);
+  const priority = document.createElement("strong");
+  priority.textContent = task.priority.toUpperCase();
+  priority.classList.add(`priority-${task.priority}`);
 
+  top.appendChild(span);
+  top.appendChild(priority);
+
+  // =======================
+  // META (DATE + COUNTDOWN)
+  // =======================
+  const meta = document.createElement("div");
+  meta.classList.add("task-meta");
+
+  const due = document.createElement("small");
+  const countdown = document.createElement("small");
+
+  if (task.dueDate || task.dueTime) {
+    let text = "⏰ ";
+
+    if (task.dueDate) text += task.dueDate;
+    if (task.dueTime) text += ` at ${task.dueTime}`;
+
+    due.textContent = text;
+
+    const updateCountdown = () => {
+      const t = getTimeLeft(task);
+      countdown.textContent = t ? `⏳ ${t}` : "";
+    };
+
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+  }
+
+  meta.appendChild(due);
+  meta.appendChild(countdown);
+
+  content.appendChild(top);
+  content.appendChild(meta);
+
+  // =======================
+  // BUTTONS (UNCHANGED)
+  // =======================
   const completeBtn = document.createElement("button");
   completeBtn.textContent = task.completed ? "☑️" : "✔️";
 
@@ -150,43 +180,6 @@ function createTaskElement(task) {
     task.completed = !task.completed;
     updateTask(task);
   });
-
-  top.appendChild(span);
-  top.appendChild(priorityTag);
-
-  const meta = document.createElement("div");
-  meta.classList.add("task-meta");
-
-  const date = document.createElement("small");
-  date.classList.add("due-date");
-
-  // ✅ FIX: store raw date for safe sorting
-  if (task.dueDate) {
-    date.dataset.raw = task.dueDate;
-
-    const due = new Date(task.dueDate);
-    const today = new Date();
-
-    due.setHours(0,0,0,0);
-    today.setHours(0,0,0,0);
-
-    const diff = (due - today) / (1000 * 60 * 60 * 24);
-
-    date.textContent = `Due: ${due.toLocaleDateString()}`;
-
-    if (diff < 0 && !task.completed) li.classList.add("overdue");
-    else if (diff === 0) li.classList.add("due-today");
-    else if (diff <= 2) li.classList.add("due-soon");
-  }
-
-  const time = document.createElement("small");
-  time.textContent = `Created: ${formatTime(task.createdAt)}`;
-
-  meta.appendChild(date);
-  meta.appendChild(time);
-
-  content.appendChild(top);
-  content.appendChild(meta);
 
   const editBtn = document.createElement("button");
   editBtn.textContent = "✏️";
@@ -207,7 +200,6 @@ function createTaskElement(task) {
     li.remove();
   });
 
-  li.appendChild(deleteBg);
   li.appendChild(content);
   li.appendChild(completeBtn);
   li.appendChild(editBtn);
@@ -215,7 +207,9 @@ function createTaskElement(task) {
 
   taskList.appendChild(li);
 
-  // swipe
+  // =======================
+  // SWIPE (UNCHANGED)
+  // =======================
   let startX = 0;
   let currentX = 0;
   let isSwiping = false;
@@ -256,54 +250,6 @@ function createTaskElement(task) {
 }
 
 // =======================
-// UNDO SYSTEM
-// =======================
-let undoTask = null;
-let undoTimeout = null;
-
-function deleteTaskWithUndo(task) {
-  undoTask = task;
-  removeTask(task.id);
-
-  showUndoToast();
-
-  clearTimeout(undoTimeout);
-  undoTimeout = setTimeout(() => {
-    undoTask = null;
-    hideUndoToast();
-  }, 5000);
-}
-
-function undoDelete() {
-  if (!undoTask) return;
-
-  saveTask(undoTask);
-  createTaskElement(undoTask);
-
-  undoTask = null;
-  hideUndoToast();
-}
-
-function showUndoToast() {
-  let toast = document.getElementById("undoToast");
-
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "undoToast";
-    toast.innerHTML = `Task deleted <button>Undo</button>`;
-    document.body.appendChild(toast);
-
-    toast.querySelector("button").addEventListener("click", undoDelete);
-  }
-
-  toast.classList.add("show");
-}
-
-function hideUndoToast() {
-  document.getElementById("undoToast")?.classList.remove("show");
-}
-
-// =======================
 // STORAGE
 // =======================
 function saveTask(task) {
@@ -326,7 +272,7 @@ function removeTask(id) {
 }
 
 // =======================
-// UPDATE + FILTER + SORT
+// UPDATE
 // =======================
 function updateTask(updated) {
   const tasks = getTasks().map(t =>
@@ -341,6 +287,9 @@ function updateTask(updated) {
   filterTasks();
 }
 
+// =======================
+// FILTER
+// =======================
 function filterTasks() {
   document.querySelectorAll("#taskList li").forEach(li => {
     const isCompleted = li.classList.contains("completed");
@@ -351,69 +300,58 @@ function filterTasks() {
   });
 }
 
-// ✅ FIXED SORT (no broken date parsing)
+// =======================
+// SORT
+// =======================
 function sortTasks() {
   const tasks = Array.from(taskList.children);
 
   tasks.sort((a, b) => {
-    const getScore = (el) => {
-      const raw = el.querySelector(".due-date")?.dataset.raw;
-      if (!raw) return 9999;
-
-      const date = new Date(raw);
-      const today = new Date();
-
-      date.setHours(0,0,0,0);
-      today.setHours(0,0,0,0);
-
-      return (date - today) / (1000 * 60 * 60 * 24);
+    const getDate = (el) => {
+      const text = el.querySelector("small")?.textContent;
+      const match = text?.match(/\d{4}-\d{2}-\d{2}/);
+      if (!match) return 999999;
+      return new Date(match[0]).getTime();
     };
 
-    return getScore(a) - getScore(b);
+    return getDate(a) - getDate(b);
   });
 
   tasks.forEach(t => taskList.appendChild(t));
 }
 
 // =======================
-// TIME
+// TIME HELPERS
 // =======================
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleString();
+function getTimeLeft(task) {
+  if (!task.dueDate) return null;
+
+  const due = new Date(`${task.dueDate}T${task.dueTime || "00:00"}`);
+  const now = new Date();
+
+  const diff = due - now;
+
+  if (diff <= 0) return "Overdue";
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) return `Due in ${hours}h ${mins}m`;
+  return `Due in ${mins}m`;
 }
 
+// =======================
+// UNDO (MINIMAL KEEP)
+// =======================
+function deleteTaskWithUndo(task) {
+  removeTask(task.id);
+}
+
+// =======================
+// SERVICE WORKER
+// =======================
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js")
-      .then((reg) => {
-        console.log("SW registered:", reg.scope);
-      })
-      .catch((err) => {
-        console.log("SW failed:", err);
-      });
-  }); 
-}
-
-function renderTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
-
-  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-
-  tasks.forEach((task, index) => {
-    const li = document.createElement("li");
-
-    let timeText = "";
-    if (task.date || task.time) {
-      timeText = `⏰ ${task.date || ""} ${task.time || ""}`;
-    }
-
-    li.innerHTML = `
-      <span>${task.text}</span>
-      <small>${timeText}</small>
-      <button onclick="deleteTask(${index})">❌</button>
-    `;
-
-    list.appendChild(li);
+    navigator.serviceWorker.register("./service-worker.js");
   });
 }
